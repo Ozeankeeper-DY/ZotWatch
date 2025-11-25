@@ -1,0 +1,55 @@
+name: Daily Watch & RSS
+
+on:
+  schedule:
+    - cron: "5 22 * * *"  #北京时间6点05运行
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    env:
+      ZOTERO_API_KEY: ${{ secrets.ZOTERO_API_KEY }}
+      ZOTERO_USER_ID: ${{ secrets.ZOTERO_USER_ID }}
+      ALTMETRIC_KEY: ${{ secrets.ALTMETRIC_KEY }}
+      OPENALEX_MAILTO: ${{ secrets.OPENALEX_MAILTO }}
+      CROSSREF_MAILTO: ${{ secrets.CROSSREF_MAILTO }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Ensure data directories
+        run: mkdir -p data reports
+      - name: Compute cache key suffix
+        id: cache-key
+        run: echo "CACHE_KEY=$(date +%Y%m)" >> $GITHUB_ENV
+      - name: Restore profile cache
+        id: cache-profile
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/profile.sqlite
+            data/faiss.index
+            data/profile.json
+          key: profile-${{ env.CACHE_KEY }}
+      - run: uv sync
+      - name: Build Zotero profile
+        if: steps.cache-profile.outputs.cache-hit != 'true'
+        run: uv run python -m src.cli profile --full
+      - run: uv run python -m src.cli watch --rss --top 20
+      - name: Prepare Pages
+        run: |
+          mkdir -p public
+          cp -r reports/* public/ || true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+      - uses: actions/deploy-pages@v4
