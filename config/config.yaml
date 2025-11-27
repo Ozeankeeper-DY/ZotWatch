@@ -94,7 +94,7 @@ llm:
 output:
   rss:
     title: "ZotWatch Feed"
-    link: "https://example.com"
+    link: "https://ehehe.cn/zotwatch/"
     description: "AI-assisted literature watch"
   html:
     template: "report.html"
