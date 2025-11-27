@@ -71,6 +71,9 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Test API connections
+        run: uv run python scripts/test_api_connections.py
+
       - name: Install Camoufox browser
         run: uv run python -m camoufox fetch
 
