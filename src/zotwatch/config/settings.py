@@ -76,39 +76,17 @@ class SourcesConfig(BaseModel):
 
 
 # Scoring Configuration
-class ScoreWeights(BaseModel):
-    """Score component weights."""
-
-    similarity: float = 0.50
-    recency: float = 0.15
-    citations: float = 0.15
-    author_bonus: float = 0.02
-    venue_bonus: float = 0.09
-
-    def normalized(self) -> "ScoreWeights":
-        """Return normalized weights that sum to 1.0."""
-        total = sum(self.model_dump().values())
-        if not total:
-            raise ValueError("Score weights sum to zero; at least one positive weight is required.")
-        normalized = {k: v / total for k, v in self.model_dump().items()}
-        return ScoreWeights(**normalized)
-
-
 class Thresholds(BaseModel):
     """Score thresholds for labeling."""
 
-    must_read: float = 0.75
-    consider: float = 0.5
+    must_read: float = 0.65
+    consider: float = 0.45
 
 
 class ScoringConfig(BaseModel):
     """Scoring and ranking configuration."""
 
-    weights: ScoreWeights = Field(default_factory=ScoreWeights)
     thresholds: Thresholds = Field(default_factory=Thresholds)
-    decay_days: Dict[str, int] = Field(default_factory=lambda: {"fast": 3, "medium": 7, "slow": 30})
-    whitelist_authors: List[str] = Field(default_factory=list)
-    whitelist_venues: List[str] = Field(default_factory=list)
 
 
 # Embedding Configuration

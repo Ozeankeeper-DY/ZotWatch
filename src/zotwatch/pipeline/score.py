@@ -3,11 +3,8 @@
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
-
-import numpy as np
 
 from zotwatch.config.settings import Settings
 from zotwatch.core.models import CandidateWork, RankedWork
@@ -31,7 +28,7 @@ class RankerArtifacts:
 
 
 class WorkRanker:
-    """Ranks candidate works using multi-factor scoring."""
+    """Ranks candidate works by embedding similarity."""
 
     def __init__(
         self,
@@ -87,7 +84,7 @@ class WorkRanker:
         return json.loads(path.read_text(encoding="utf-8"))
 
     def rank(self, candidates: List[CandidateWork]) -> List[RankedWork]:
-        """Rank candidates and return sorted results."""
+        """Rank candidates by embedding similarity."""
         if not candidates:
             return []
 
@@ -97,27 +94,12 @@ class WorkRanker:
         logger.info("Scoring %d candidate works", len(candidates))
 
         distances, _ = self.index.search(vectors, top_k=1)
-        weights = self.settings.scoring.weights
         thresholds = self.settings.scoring.thresholds
 
         ranked: List[RankedWork] = []
-        for candidate, vector, distance in zip(candidates, vectors, distances):
+        for candidate, distance in zip(candidates, distances):
             similarity = float(distance[0]) if distance.size else 0.0
-            recency_score = _compute_recency(candidate.published, self.settings)
-            citation_score = _compute_citation_score(candidate)
-            author_bonus = _bonus(candidate.authors, self.settings.scoring.whitelist_authors)
-            venue_bonus = _bonus(
-                [candidate.venue] if candidate.venue else [],
-                self.settings.scoring.whitelist_venues,
-            )
-
-            score = (
-                similarity * weights.similarity
-                + recency_score * weights.recency
-                + citation_score * weights.citations
-                + author_bonus * weights.author_bonus
-                + venue_bonus * weights.venue_bonus
-            )
+            score = similarity  # Score is simply the similarity
 
             label = "ignore"
             if score >= thresholds.must_read:
@@ -130,49 +112,12 @@ class WorkRanker:
                     **candidate.model_dump(),
                     score=score,
                     similarity=similarity,
-                    recency_score=recency_score,
-                    metric_score=citation_score,
-                    author_bonus=author_bonus,
-                    venue_bonus=venue_bonus,
                     label=label,
                 )
             )
 
         ranked.sort(key=lambda w: w.score, reverse=True)
         return ranked
-
-
-def _bonus(values: List[str], whitelist: List[str]) -> float:
-    """Calculate whitelist bonus."""
-    whitelist_lower = {v.lower() for v in whitelist}
-    for value in values:
-        if value and value.lower() in whitelist_lower:
-            return 1.0
-    return 0.0
-
-
-def _compute_recency(published: datetime | None, settings: Settings) -> float:
-    """Calculate recency score."""
-    if not published:
-        return 0.0
-    if published.tzinfo is None:
-        published = published.replace(tzinfo=timezone.utc)
-    now = datetime.now(timezone.utc)
-    delta_days = max((now - published).days, 0)
-    decay = settings.scoring.decay_days
-    if delta_days <= decay.get("fast", 3):
-        return 1.0
-    if delta_days <= decay.get("medium", 7):
-        return 0.7
-    if delta_days <= decay.get("slow", 30):
-        return 0.4
-    return 0.1
-
-
-def _compute_citation_score(candidate: CandidateWork) -> float:
-    """Calculate citation score."""
-    citations = float(candidate.metrics.get("cited_by", candidate.metrics.get("is-referenced-by", 0.0)))
-    return float(np.log1p(citations)) if citations else 0.0
 
 
 __all__ = ["WorkRanker"]

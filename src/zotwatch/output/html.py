@@ -179,13 +179,6 @@ _FALLBACK_TEMPLATE = """<!DOCTYPE html>
           <div class="pt-4 border-t border-border-color">
             <div class="flex flex-wrap gap-3 text-xs">
               <span class="px-2 py-1 bg-bg-hover rounded text-text-secondary">相似度 {{ '%.2f'|format(work.similarity) }}</span>
-              <span class="px-2 py-1 bg-bg-hover rounded text-text-secondary">时效性 {{ '%.2f'|format(work.recency_score) }}</span>
-              {% if work.author_bonus > 0 %}
-              <span class="px-2 py-1 bg-green-100 rounded text-green-700">关注作者</span>
-              {% endif %}
-              {% if work.venue_bonus > 0 %}
-              <span class="px-2 py-1 bg-green-100 rounded text-green-700">关注期刊</span>
-              {% endif %}
             </div>
           </div>
         </div>

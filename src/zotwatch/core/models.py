@@ -94,13 +94,9 @@ class CandidateWork(BaseModel):
 class RankedWork(CandidateWork):
     """Extends CandidateWork with scoring information."""
 
-    score: float
-    similarity: float
-    recency_score: float
-    metric_score: float
-    author_bonus: float
-    venue_bonus: float
-    label: str
+    score: float  # Final score (equals similarity)
+    similarity: float  # Embedding similarity
+    label: str  # must_read/consider/ignore
     summary: Optional["PaperSummary"] = None
 
 

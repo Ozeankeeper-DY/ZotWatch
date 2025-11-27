@@ -41,21 +41,9 @@ sources:
     use_llm_fallback: true  # Use LLM when rule extraction fails
 
 scoring:
-  weights:
-    similarity: 0.50
-    recency: 0.15
-    citations: 0.15
-    author_bonus: 0.02
-    venue_bonus: 0.09
   thresholds:
-    must_read: 0.75
-    consider: 0.5
-  decay_days:
-    fast: 3
-    medium: 7
-    slow: 30
-  whitelist_authors: []
-  whitelist_venues: []
+    must_read: 0.65
+    consider: 0.45
 
 embedding:
   provider: "voyage"
