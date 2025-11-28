@@ -93,8 +93,11 @@ class CandidateWork(BaseModel):
 class RankedWork(CandidateWork):
     """Extends CandidateWork with scoring information."""
 
-    score: float  # Final score (equals similarity)
+    score: float  # Final combined score (similarity + IF weighted)
     similarity: float  # Embedding similarity
+    impact_factor_score: float = 0.0  # Normalized IF score (0-1)
+    impact_factor: float | None = None  # Raw IF value (None for arXiv/CN/unknown)
+    is_chinese_core: bool = False  # True if Chinese core journal
     label: str  # must_read/consider/ignore
     summary: "PaperSummary | None" = None
 

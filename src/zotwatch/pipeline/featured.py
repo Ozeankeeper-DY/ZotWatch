@@ -1,6 +1,9 @@
 """Featured paper selection based on user interests."""
 
+import csv
 import logging
+import math
+from pathlib import Path
 
 import numpy as np
 
@@ -22,6 +25,7 @@ class FeaturedSelector:
         vectorizer: BaseEmbeddingProvider,
         reranker: VoyageReranker,
         interest_refiner: InterestRefiner,
+        base_dir: Path | str | None = None,
     ):
         """Initialize featured selector.
 
@@ -30,11 +34,62 @@ class FeaturedSelector:
             vectorizer: Embedding provider for encoding
             reranker: Voyage reranker for semantic re-ranking
             interest_refiner: LLM-based interest refiner
+            base_dir: Base directory for data files (for loading journal whitelist)
         """
         self.settings = settings
         self.vectorizer = vectorizer
         self.reranker = reranker
         self.interest_refiner = interest_refiner
+        self.base_dir = Path(base_dir) if base_dir else Path.cwd()
+        self._whitelist = self._load_whitelist()
+
+    def _load_whitelist(self) -> dict[str, dict]:
+        """Load journal whitelist with IF data."""
+        path = self.base_dir / "data" / "journal_whitelist.csv"
+        whitelist: dict[str, dict] = {}
+
+        if not path.exists():
+            return whitelist
+
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    issn = (row.get("issn") or "").strip()
+                    if not issn:
+                        continue
+                    category = row.get("category", "")
+                    is_cn = "(CN)" in category
+                    if_str = row.get("impact_factor", "").strip()
+                    impact_factor = None if if_str in ("NA", "") else float(if_str)
+                    whitelist[issn] = {
+                        "impact_factor": impact_factor,
+                        "is_cn": is_cn,
+                    }
+        except Exception as exc:
+            logger.warning("Failed to load journal whitelist: %s", exc)
+
+        return whitelist
+
+    def _compute_impact_factor_score(
+        self, candidate: CandidateWork
+    ) -> tuple[float, float | None, bool]:
+        """Compute IF score for a candidate."""
+        if candidate.source == "arxiv":
+            return (0.6, None, False)
+
+        issns = candidate.extra.get("issns") or []
+        for issn in issns:
+            if issn and issn in self._whitelist:
+                entry = self._whitelist[issn]
+                if entry["is_cn"]:
+                    return (0.7, None, True)
+                if entry["impact_factor"] is not None:
+                    raw_if = entry["impact_factor"]
+                    normalized = math.log(raw_if + 1) / math.log(25)
+                    return (min(normalized, 1.0), raw_if, False)
+
+        return (0.3, None, False)
 
     def select(self, candidates: list[CandidateWork]) -> list[FeaturedWork]:
         """Select featured papers using interest-based reranking.
@@ -129,15 +184,19 @@ class FeaturedSelector:
             top_k=top_k_featured,
         )
 
-        # Step 6: Build featured works
+        # Step 6: Build featured works with IF scores
         featured = []
         for idx, score in rerank_results:
             work = recalled[idx]
+            if_score, raw_if, is_cn = self._compute_impact_factor_score(work)
             featured.append(
                 FeaturedWork(
                     **work.model_dump(),
                     score=score,  # Use rerank score as primary score
                     similarity=similarities.get(work.identifier, 0.0),
+                    impact_factor_score=if_score,
+                    impact_factor=raw_if,
+                    is_chinese_core=is_cn,
                     rerank_score=score,
                     label="featured",
                 )

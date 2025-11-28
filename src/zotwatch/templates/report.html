@@ -25,9 +25,9 @@
     }
   </script>
   <style>
-    .section-expand { transition: max-height 0.3s ease-out; overflow: hidden; }
+    .section-expand { transition: max-height 0.5s ease-out; overflow: hidden; }
     .section-expand.collapsed { max-height: 0; }
-    .section-expand.expanded { max-height: 5000px; }
+    .section-expand.expanded { max-height: none; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
     .content-container { max-width: 48rem; margin: 0 auto; padding: 0 2rem; }
     @media (min-width: 1024px) { .content-container { padding: 0 4rem; } }
@@ -410,7 +410,14 @@
                 </div>
               </div>
               <!-- Venue: below title on mobile -->
-              <div class="mt-1 text-xs text-text-secondary" title="{{ work.venue or '' }}">{{ work.venue or '未知来源' }}</div>
+              <div class="mt-1 text-xs text-text-secondary" title="{{ work.venue or '' }}">
+                {{ work.venue or '未知来源' }}
+                {% if work.is_chinese_core %}
+                  <span class="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">中文核心</span>
+                {% elif work.impact_factor %}
+                  <span class="ml-1 text-blue-600">(IF: {{ '%.1f'|format(work.impact_factor) }})</span>
+                {% endif %}
+              </div>
             </div>
 
             <!-- Authors -->
@@ -501,6 +508,14 @@
             <div class="pt-4 border-t border-border-color">
               <div class="flex flex-wrap gap-3 text-xs">
                 <span class="px-2 py-1 bg-bg-hover rounded text-text-secondary">相似度 {{ '%.2f'|format(work.similarity) }}</span>
+                <span class="px-2 py-1 bg-bg-hover rounded text-text-secondary">
+                  期刊影响力 {{ '%.2f'|format(work.impact_factor_score) }}
+                  {% if work.is_chinese_core %}
+                    <span class="ml-1 text-amber-600">(中文核心期刊)</span>
+                  {% elif work.impact_factor %}
+                    <span class="ml-1 text-blue-600">(IF: {{ '%.1f'|format(work.impact_factor) }})</span>
+                  {% endif %}
+                </span>
               </div>
             </div>
           </div>
@@ -568,7 +583,14 @@
                 </div>
               </div>
               <!-- Venue: below title -->
-              <div class="mt-1 text-xs text-text-secondary" title="{{ work.venue or '' }}">{{ work.venue or '未知来源' }}</div>
+              <div class="mt-1 text-xs text-text-secondary" title="{{ work.venue or '' }}">
+                {{ work.venue or '未知来源' }}
+                {% if work.is_chinese_core %}
+                  <span class="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">中文核心</span>
+                {% elif work.impact_factor %}
+                  <span class="ml-1 text-blue-600">(IF: {{ '%.1f'|format(work.impact_factor) }})</span>
+                {% endif %}
+              </div>
             </div>
 
             <!-- Authors -->
@@ -659,6 +681,14 @@
             <div class="pt-4 border-t border-border-color">
               <div class="flex flex-wrap gap-3 text-xs">
                 <span class="px-2 py-1 bg-bg-hover rounded text-text-secondary">相似度 {{ '%.2f'|format(work.similarity) }}</span>
+                <span class="px-2 py-1 bg-bg-hover rounded text-text-secondary">
+                  期刊影响力 {{ '%.2f'|format(work.impact_factor_score) }}
+                  {% if work.is_chinese_core %}
+                    <span class="ml-1 text-amber-600">(中文核心期刊)</span>
+                  {% elif work.impact_factor %}
+                    <span class="ml-1 text-blue-600">(IF: {{ '%.1f'|format(work.impact_factor) }})</span>
+                  {% endif %}
+                </span>
               </div>
             </div>
           </div>

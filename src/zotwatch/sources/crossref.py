@@ -203,7 +203,10 @@ class CrossrefSource(BaseSource):
             published=parse_date(item.get("created", {}).get("date-time")),
             venue=venue,
             metrics={"is-referenced-by": float(item.get("is-referenced-by-count", 0))},
-            extra={"type": item.get("type")},
+            extra={
+                "type": item.get("type"),
+                "issns": item.get("ISSN") or [],  # All ISSNs for matching
+            },
         )
 
 

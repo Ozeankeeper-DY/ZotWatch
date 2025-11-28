@@ -362,6 +362,7 @@ def watch(
                 vectorizer=vectorizer,
                 reranker=reranker,
                 interest_refiner=refiner,
+                base_dir=base_dir,
             )
             featured_works = selector.select(filtered)
             click.echo(f"  Selected {len(featured_works)} featured papers")
