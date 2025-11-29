@@ -375,10 +375,7 @@ class ProfileStorage:
                 model_used=excluded.model_used,
                 generated_at=CURRENT_TIMESTAMP
             """,
-            [
-                (t["paper_id"], t["original"], t["translated"], target_language, model)
-                for t in translations
-            ],
+            [(t["paper_id"], t["original"], t["translated"], target_language, model) for t in translations],
         )
         conn.commit()
 

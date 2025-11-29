@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
 
 from zotwatch.utils.datetime import (
     ensure_aware,

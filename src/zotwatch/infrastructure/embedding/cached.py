@@ -134,9 +134,7 @@ class CachingEmbeddingProvider(BaseEmbeddingProvider):
             return np.array([], dtype=np.float32).reshape(0, self.dimensions)
 
         if source_ids is not None and len(source_ids) != len(texts_list):
-            raise ValidationError(
-                f"source_ids length ({len(source_ids)}) must match texts length ({len(texts_list)})"
-            )
+            raise ValidationError(f"source_ids length ({len(source_ids)}) must match texts length ({len(texts_list)})")
 
         # Compute content hashes
         hashes = [hash_content(t) for t in texts_list]

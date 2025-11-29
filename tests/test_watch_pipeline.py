@@ -2,7 +2,6 @@
 
 from dataclasses import fields
 
-import pytest
 
 from zotwatch.pipeline.watch import WatchConfig, WatchResult, WatchStats
 

@@ -34,8 +34,7 @@ def create_llm_client(config: LLMConfig) -> BaseLLMProvider:
         return OpenRouterClient.from_config(config)
     else:
         raise ConfigurationError(
-            f"Unknown LLM provider: {config.provider}. "
-            f"Supported providers: {', '.join(sorted(SUPPORTED_PROVIDERS))}"
+            f"Unknown LLM provider: {config.provider}. Supported providers: {', '.join(sorted(SUPPORTED_PROVIDERS))}"
         )
 
 

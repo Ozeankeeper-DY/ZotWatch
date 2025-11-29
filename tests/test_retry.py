@@ -112,6 +112,7 @@ class TestWithRetryDecorator:
 
     def test_successful_call(self):
         """Successful function should return without retry."""
+
         @with_retry(max_attempts=3)
         def successful_func():
             return "success"
@@ -139,6 +140,7 @@ class TestWithRetryDecorator:
 
     def test_exhausted_retries_raises_network_error(self):
         """Exhausted retries should raise NetworkError."""
+
         @with_retry(max_attempts=2, initial_delay=0.01)
         def always_fails():
             raise requests.exceptions.Timeout("Timeout")
@@ -152,6 +154,7 @@ class TestWithRetryDecorator:
 
     def test_non_retryable_http_error_raises_immediately(self):
         """Non-retryable HTTP errors should raise immediately."""
+
         @with_retry(max_attempts=3)
         def returns_404():
             response = MagicMock()
@@ -266,6 +269,7 @@ class TestWithRetryDecorator:
 
     def test_preserves_function_metadata(self):
         """Decorator should preserve function name and docstring."""
+
         @with_retry()
         def documented_function():
             """This is the docstring."""

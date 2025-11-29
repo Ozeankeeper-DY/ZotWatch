@@ -1,6 +1,7 @@
 """Zotero ingestion pipeline."""
 
 import logging
+from collections.abc import Callable
 
 from zotwatch.config.settings import Settings
 from zotwatch.infrastructure.storage import ProfileStorage
@@ -14,6 +15,7 @@ def ingest_zotero(
     settings: Settings,
     *,
     full: bool = False,
+    on_progress: Callable[[str, str], None] | None = None,
 ) -> IngestStats:
     """Ingest items from Zotero library.
 
@@ -21,12 +23,15 @@ def ingest_zotero(
         storage: Profile storage instance
         settings: Application settings
         full: If True, perform full rebuild; otherwise incremental sync
+        on_progress: Optional callback for progress updates.
+                    Called with (stage: str, message: str).
 
     Returns:
         IngestStats with operation statistics
     """
+    logger.info("Starting Zotero ingest (full=%s)...", full)
     ingestor = ZoteroIngestor(storage, settings)
-    stats = ingestor.run(full=full)
+    stats = ingestor.run(full=full, on_progress=on_progress)
 
     logger.info(
         "Ingest stats: fetched=%d updated=%d removed=%d",

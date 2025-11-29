@@ -1,8 +1,7 @@
 """Tests for core data models."""
 
-from datetime import datetime, timezone
+from datetime import timezone
 
-import pytest
 
 from zotwatch.core.models import (
     BulletSummary,

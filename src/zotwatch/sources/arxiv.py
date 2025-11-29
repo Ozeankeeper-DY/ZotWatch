@@ -78,20 +78,13 @@ class ArxivSource(BaseSource):
             resp.raise_for_status()
         except requests.exceptions.Timeout:
             raise SourceFetchError(
-                "arxiv",
-                f"Request timed out after {DEFAULT_HTTP_TIMEOUT}s for categories {', '.join(categories)}"
+                "arxiv", f"Request timed out after {DEFAULT_HTTP_TIMEOUT}s for categories {', '.join(categories)}"
             ) from None
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code if e.response is not None else "unknown"
-            raise SourceFetchError(
-                "arxiv",
-                f"HTTP {status} error fetching entries for {', '.join(categories)}"
-            ) from e
+            raise SourceFetchError("arxiv", f"HTTP {status} error fetching entries for {', '.join(categories)}") from e
         except requests.exceptions.RequestException as e:
-            raise SourceFetchError(
-                "arxiv",
-                f"Network error: {type(e).__name__}"
-            ) from e
+            raise SourceFetchError("arxiv", f"Network error: {type(e).__name__}") from e
 
         feed = feedparser.parse(resp.text)
 

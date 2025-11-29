@@ -91,10 +91,14 @@ def _build_profile(
     storage = ProfileStorage(base_dir / "data" / "profile.sqlite")
     storage.initialize()
 
+    # Progress callback for ingest
+    def on_ingest_progress(stage: str, msg: str) -> None:
+        click.echo(f"  [{stage}] {msg}")
+
     # Ingest from Zotero
     click.echo("Ingesting items from Zotero...")
     ingestor = ZoteroIngestor(storage, settings)
-    stats = ingestor.run(full=full)
+    stats = ingestor.run(full=full, on_progress=on_ingest_progress)
     click.echo(f"  Fetched: {stats.fetched}, Updated: {stats.updated}, Removed: {stats.removed}")
 
     # Count items
@@ -142,10 +146,14 @@ def profile(ctx: click.Context, full: bool) -> None:
     storage.initialize()
     embedding_cache = _get_cache(ctx)
 
+    # Progress callback for ingest
+    def on_ingest_progress(stage: str, msg: str) -> None:
+        click.echo(f"  [{stage}] {msg}")
+
     # Ingest from Zotero
     click.echo("Ingesting items from Zotero...")
     ingestor = ZoteroIngestor(storage, settings)
-    stats = ingestor.run(full=full)
+    stats = ingestor.run(full=full, on_progress=on_ingest_progress)
     click.echo(f"  Fetched: {stats.fetched}, Updated: {stats.updated}, Removed: {stats.removed}")
 
     # Count items

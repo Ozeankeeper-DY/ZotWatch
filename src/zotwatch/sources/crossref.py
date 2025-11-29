@@ -155,20 +155,13 @@ class CrossrefSource(BaseSource):
                 resp.raise_for_status()
             except requests.exceptions.Timeout:
                 raise SourceFetchError(
-                    "crossref",
-                    f"Request timed out after {DEFAULT_HTTP_TIMEOUT}s (offset={offset})"
+                    "crossref", f"Request timed out after {DEFAULT_HTTP_TIMEOUT}s (offset={offset})"
                 ) from None
             except requests.exceptions.HTTPError as e:
                 status = e.response.status_code if e.response is not None else "unknown"
-                raise SourceFetchError(
-                    "crossref",
-                    f"HTTP {status} error (offset={offset})"
-                ) from e
+                raise SourceFetchError("crossref", f"HTTP {status} error (offset={offset})") from e
             except requests.exceptions.RequestException as e:
-                raise SourceFetchError(
-                    "crossref",
-                    f"Network error: {type(e).__name__}"
-                ) from e
+                raise SourceFetchError("crossref", f"Network error: {type(e).__name__}") from e
 
             message = resp.json().get("message", {})
             items = message.get("items", [])

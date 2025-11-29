@@ -2,7 +2,7 @@
 
 import logging
 import time
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 import requests
@@ -58,7 +58,6 @@ class ZoteroClient:
 
         next_url = self.base_items_url
         while next_url:
-            logger.debug("Fetching Zotero page: %s", next_url)
             resp = self.session.get(
                 next_url,
                 params=params if next_url == self.base_items_url else None,
@@ -108,8 +107,22 @@ class ZoteroIngestor:
         self.settings = settings
         self.client = ZoteroClient(settings)
 
-    def run(self, *, full: bool = False) -> IngestStats:
-        """Run ingest operation."""
+    def run(
+        self,
+        *,
+        full: bool = False,
+        on_progress: Callable[[str, str], None] | None = None,
+    ) -> IngestStats:
+        """Run ingest operation.
+
+        Args:
+            full: If True, perform full rebuild; otherwise incremental sync.
+            on_progress: Optional callback for progress updates.
+                        Called with (stage: str, message: str).
+
+        Returns:
+            IngestStats with operation statistics.
+        """
         stats = IngestStats()
         self.storage.initialize()
         since_version = None if full else self.storage.last_modified_version()
@@ -131,6 +144,10 @@ class ZoteroIngestor:
                 self.storage.upsert_item(zot_item, content_hash=content_hash)
                 stats.fetched += 1
                 stats.updated += 1
+
+            # Progress callback after each page
+            if on_progress:
+                on_progress("ingest", f"Processed {stats.fetched} items...")
 
         deleted_keys = self.client.fetch_deleted(since_version=max_version if not full else None)
         self.storage.remove_items(deleted_keys)

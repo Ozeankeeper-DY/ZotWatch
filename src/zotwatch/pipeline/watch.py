@@ -135,7 +135,10 @@ class WatchPipeline:
             self._llm_client = create_llm_client(self.settings.llm)
         return self._llm_client
 
-    def _ensure_profile_exists(self) -> bool:
+    def _ensure_profile_exists(
+        self,
+        on_progress: Callable[[str, str], None] | None = None,
+    ) -> bool:
         """Check if profile exists, return True if it was built."""
         faiss_path = self.base_dir / "data" / "faiss.index"
         sqlite_path = self.base_dir / "data" / "profile.sqlite"
@@ -145,17 +148,21 @@ class WatchPipeline:
 
         # Build profile
         logger.info("No profile found, building from Zotero library...")
-        self._build_profile(full=True)
+        self._build_profile(full=True, on_progress=on_progress)
         return True
 
-    def _build_profile(self, full: bool = True) -> None:
+    def _build_profile(
+        self,
+        full: bool = True,
+        on_progress: Callable[[str, str], None] | None = None,
+    ) -> None:
         """Build user profile from Zotero library."""
         storage = self._get_storage()
         embedding_cache = self._get_embedding_cache()
 
         # Ingest from Zotero
         ingestor = ZoteroIngestor(storage, self.settings)
-        ingestor.run(full=full)
+        ingestor.run(full=full, on_progress=on_progress)
 
         # Build profile
         vectorizer = VoyageEmbedding(
@@ -197,14 +204,14 @@ class WatchPipeline:
                 on_progress(stage, msg)
 
         # 1. Ensure profile exists
-        profile_built = self._ensure_profile_exists()
+        profile_built = self._ensure_profile_exists(on_progress=progress)
         if profile_built:
             progress("profile", "Profile built from Zotero library")
 
         # 2. Incremental Zotero sync
         progress("sync", "Syncing with Zotero...")
         ingestor = ZoteroIngestor(storage, self.settings)
-        ingestor.run(full=False)
+        ingestor.run(full=False, on_progress=progress)
 
         # 3. Analyze researcher profile (optional)
         if self.settings.llm.enabled:
@@ -341,8 +348,7 @@ class WatchPipeline:
 
         progress(
             "enrich",
-            f"Enriched {stats.enriched} abstracts "
-            f"(cache: {stats.cache_hits}, scraper: {stats.scraper_fetched})",
+            f"Enriched {stats.enriched} abstracts (cache: {stats.cache_hits}, scraper: {stats.scraper_fetched})",
         )
 
         return candidates, stats

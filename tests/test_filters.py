@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
 
 from zotwatch.core.models import CandidateWork, RankedWork
 from zotwatch.pipeline.filters import (
