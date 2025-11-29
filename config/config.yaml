@@ -35,9 +35,26 @@ sources:
     use_llm_fallback: true  # Use LLM when rule extraction fails
 
 scoring:
+  # Threshold Configuration
+  # Controls how papers are labeled: "must_read", "consider", or "ignore"
   thresholds:
+    # Mode: "fixed" uses static thresholds below; "dynamic" computes from score distribution
+    # Dynamic mode helps when absolute scores vary across runs, ensuring consistent relative ranking
+    mode: "dynamic"
+
+    # Fixed thresholds (used when mode: "fixed")
+    # Papers with score >= must_read are labeled "must_read"
+    # Papers with score >= consider (but < must_read) are labeled "consider"
     must_read: 0.75
     consider: 0.55
+
+    # Dynamic thresholds (used when mode: "dynamic")
+    # Computes thresholds based on percentiles of the current batch's score distribution
+    dynamic:
+      must_read_percentile: 95  # Top 5% are must_read (95th percentile = top 5%)
+      consider_percentile: 70   # 70th-95th percentile are consider
+      min_must_read: 0.60       # Floor: never label as must_read if score < this
+      min_consider: 0.40        # Floor: never label as consider if score < this
 
   # User research interests for interest-based recommendations (optional)
   interests:
@@ -116,3 +133,11 @@ profile:
     - "/unread"
   # Minimum author appearance threshold for "frequent author" count
   author_min_count: 10
+
+# Watch Pipeline Configuration
+# Controls behavior of `zotwatch watch` command
+watch:
+  recent_days: 7          # Filter papers older than this many days
+  max_preprint_ratio: 0.9 # Maximum ratio of preprints (arXiv/bioRxiv/medRxiv) in results
+  top_k: 20               # Default number of recommendations (can be overridden with --top)
+  require_abstract: true  # Filter out candidates without abstracts (required for similarity scoring)

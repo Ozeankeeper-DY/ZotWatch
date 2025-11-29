@@ -9,6 +9,8 @@ from pathlib import Path
 import requests
 
 from zotwatch.config.settings import Settings
+from zotwatch.core.constants import CROSSREF_API_PAGE_SIZE, DEFAULT_HTTP_TIMEOUT
+from zotwatch.core.exceptions import SourceFetchError
 from zotwatch.core.models import CandidateWork
 from zotwatch.utils.datetime import utc_yesterday_end
 
@@ -66,8 +68,11 @@ class CrossrefSource(BaseSource):
                     issn = (row.get("issn") or "").strip()
                     if issn:
                         issns.append(issn)
-        except Exception as exc:
-            logger.warning("Failed to load journal whitelist: %s", exc)
+        except OSError as exc:
+            logger.warning("Failed to read journal whitelist file %s: %s", path, exc)
+            return []
+        except csv.Error as exc:
+            logger.warning("Failed to parse journal whitelist CSV %s: %s", path, exc)
             return []
 
         logger.info("Loaded %d ISSNs from whitelist", len(issns))
@@ -96,7 +101,7 @@ class CrossrefSource(BaseSource):
             "filter": filter_str,
             "sort": "created",
             "order": "desc",
-            "rows": min(200, max_results),
+            "rows": min(CROSSREF_API_PAGE_SIZE, max_results),
             "mailto": self.config.mailto,
             "select": "DOI,title,author,abstract,container-title,created,URL,type,is-referenced-by-count,publisher,ISSN",
         }
@@ -146,11 +151,24 @@ class CrossrefSource(BaseSource):
         while len(results) < max_results:
             params["offset"] = offset
             try:
-                resp = self.session.get(url, params=params, timeout=30)
+                resp = self.session.get(url, params=params, timeout=DEFAULT_HTTP_TIMEOUT)
                 resp.raise_for_status()
-            except Exception as exc:
-                logger.warning("Failed to fetch Crossref works: %s", exc)
-                break
+            except requests.exceptions.Timeout:
+                raise SourceFetchError(
+                    "crossref",
+                    f"Request timed out after {DEFAULT_HTTP_TIMEOUT}s (offset={offset})"
+                ) from None
+            except requests.exceptions.HTTPError as e:
+                status = e.response.status_code if e.response is not None else "unknown"
+                raise SourceFetchError(
+                    "crossref",
+                    f"HTTP {status} error (offset={offset})"
+                ) from e
+            except requests.exceptions.RequestException as e:
+                raise SourceFetchError(
+                    "crossref",
+                    f"Network error: {type(e).__name__}"
+                ) from e
 
             message = resp.json().get("message", {})
             items = message.get("items", [])

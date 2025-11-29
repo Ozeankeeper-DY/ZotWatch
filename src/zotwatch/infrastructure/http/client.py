@@ -6,6 +6,8 @@ from typing import Any
 
 import requests
 
+from zotwatch.core.exceptions import NetworkError
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,8 +83,8 @@ class HTTPClient:
                     delay *= self.backoff_factor
 
         if last_exception:
-            raise last_exception
-        raise RuntimeError("Request failed after all retries")
+            raise NetworkError(f"Request failed after {self.max_retries} retries: {last_exception}", url=url)
+        raise NetworkError(f"Request failed after {self.max_retries} retries", url=url)
 
 
 __all__ = ["HTTPClient"]

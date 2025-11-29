@@ -80,6 +80,33 @@ src/zotwatch/
   - `embedding`: Embedding model configuration (provider, model, batch_size)
   - `llm`: LLM configuration for AI summaries (provider, model, retry settings)
   - `output`: RSS and HTML output settings
+  - `watch`: Watch pipeline settings (recent_days, preprint ratio, top_k)
+
+### Configuration Options
+
+#### Dynamic Thresholds (`scoring.thresholds`)
+
+Controls how papers are labeled as `must_read`, `consider`, or `ignore`:
+
+- `mode`: Threshold computation mode
+  - `"fixed"`: Use static threshold values (default behavior)
+  - `"dynamic"`: Compute thresholds from score distribution per batch
+- `must_read`: Fixed threshold for must_read label (default: 0.75)
+- `consider`: Fixed threshold for consider label (default: 0.55)
+- `dynamic`: Settings for dynamic mode
+  - `must_read_percentile`: Top N% marked as must_read (default: 95, meaning top 5%)
+  - `consider_percentile`: Percentile for consider threshold (default: 70)
+  - `min_must_read`: Minimum score for must_read even in dynamic mode (default: 0.60)
+  - `min_consider`: Minimum score for consider even in dynamic mode (default: 0.40)
+
+#### Watch Pipeline (`watch`)
+
+Controls the watch command behavior:
+
+- `recent_days`: Filter papers older than N days (default: 7)
+- `max_preprint_ratio`: Maximum ratio of preprints in final results (default: 0.9)
+- `top_k`: Default number of recommendations (default: 20)
+- `require_abstract`: Filter out candidates without abstracts (default: true)
 
 ### Core Components
 
@@ -103,8 +130,8 @@ Optional:
 
 ## Key Constraints
 
-- Preprint ratio is capped at 30% in final results (`_limit_preprints`)
-- Results are filtered to papers within last 7 days (`_filter_recent`)
+- Preprint ratio is configurable via `watch.max_preprint_ratio` (default: 0.9)
+- Recent paper filter is configurable via `watch.recent_days` (default: 7 days)
 - GitHub Actions caches profile artifacts monthly to avoid full rebuilds
 - AI summaries require `OPENROUTER_API_KEY` and `llm.enabled: true` in config
 - When writing code, please use English for all comments

@@ -6,6 +6,9 @@ from typing import Iterable
 import numpy as np
 import voyageai
 
+from zotwatch.core.constants import VOYAGE_EMBEDDING_DIM
+from zotwatch.core.exceptions import ConfigurationError
+
 from .base import BaseEmbeddingProvider
 
 logger = logging.getLogger(__name__)
@@ -26,7 +29,7 @@ class VoyageEmbedding(BaseEmbeddingProvider):
         self.input_type = input_type
         self.batch_size = batch_size
         self._client = None
-        self._dimensions = 1024  # voyage-3.5 default
+        self._dimensions = VOYAGE_EMBEDDING_DIM
 
     @property
     def model_name(self) -> str:
@@ -36,11 +39,11 @@ class VoyageEmbedding(BaseEmbeddingProvider):
     def dimensions(self) -> int:
         return self._dimensions
 
-    def _get_client(self):
+    def _get_client(self) -> voyageai.Client:
         """Get or create Voyage AI client."""
         if self._client is None:
             if not self.api_key:
-                raise RuntimeError("Voyage API key is required.")
+                raise ConfigurationError("Voyage API key is required. Set VOYAGE_API_KEY environment variable.")
             self._client = voyageai.Client(api_key=self.api_key)
         return self._client
 

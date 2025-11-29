@@ -17,9 +17,16 @@ from .protocols import (
 from .exceptions import (
     ZotWatchError,
     ConfigurationError,
+    ValidationError,
+    NetworkError,
+    RateLimitError,
     SourceFetchError,
     EmbeddingError,
     LLMError,
+    LLMRateLimitError,
+    StorageError,
+    CacheError,
+    ProfileBuildError,
 )
 
 __all__ = [
@@ -38,7 +45,14 @@ __all__ = [
     # Exceptions
     "ZotWatchError",
     "ConfigurationError",
+    "ValidationError",
+    "NetworkError",
+    "RateLimitError",
     "SourceFetchError",
     "EmbeddingError",
     "LLMError",
+    "LLMRateLimitError",
+    "StorageError",
+    "CacheError",
+    "ProfileBuildError",
 ]

@@ -6,6 +6,8 @@ import logging
 from collections import Counter
 from datetime import datetime
 
+from zotwatch.utils.datetime import utc_now
+
 from zotwatch.core.models import (
     AuthorStats,
     KeywordStats,
@@ -76,7 +78,7 @@ class ProfileStatsExtractor:
             return ResearcherProfile(
                 total_papers=0,
                 year_range=(0, 0),
-                generated_at=datetime.utcnow(),
+                generated_at=utc_now(),
             )
 
         years = [i.year for i in items if i.year]
@@ -97,7 +99,7 @@ class ProfileStatsExtractor:
             quarterly_trends=self._extract_quarterly_trends(items),
             year_distribution=self._extract_year_distribution(items),
             recent_analysis=self._analyze_recent(items),
-            generated_at=datetime.utcnow(),
+            generated_at=utc_now(),
             library_hash=library_hash,
         )
 

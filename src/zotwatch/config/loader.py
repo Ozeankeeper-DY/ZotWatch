@@ -6,6 +6,8 @@ from typing import Any
 
 import yaml
 
+from zotwatch.core.exceptions import ConfigurationError
+
 
 class ConfigLoader:
     """Configuration loader with environment variable expansion."""
@@ -50,7 +52,7 @@ def _load_yaml(path: Path) -> dict[str, Any]:
         data = yaml.safe_load(fh) or {}
     data = _expand_env_vars(data)
     if not isinstance(data, dict):
-        raise ValueError(f"Configuration file {path} must contain a mapping at the top level.")
+        raise ConfigurationError(f"Configuration file {path} must contain a mapping at the top level.")
     return data
 
 

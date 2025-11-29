@@ -5,6 +5,7 @@ import sqlite3
 import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Self
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,19 @@ class BaseSQLiteCache(ABC):
         if self._conn is not None:
             self._conn.close()
             self._conn = None
+
+    def __enter__(self) -> Self:
+        """Enter context manager."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
+        """Exit context manager and close resources."""
+        self.close()
 
 
 __all__ = ["BaseSQLiteCache"]

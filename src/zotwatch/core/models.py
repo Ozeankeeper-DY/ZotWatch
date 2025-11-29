@@ -5,6 +5,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from zotwatch.utils.datetime import utc_now
+
 
 class ZoteroItem(BaseModel):
     """Represents an item from user's Zotero library."""
@@ -167,7 +169,7 @@ class PaperSummary(BaseModel):
     bullets: BulletSummary
     detailed: DetailedAnalysis
     model_used: str
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=utc_now)
     tokens_used: int = 0
 
 
@@ -186,7 +188,7 @@ class OverallSummary(BaseModel):
     overview: str  # First sentence: topic distribution summary
     topics: list[TopicSummary] = Field(default_factory=list)
     paper_count: int
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=utc_now)
     model_used: str
     tokens_used: int = 0
 
@@ -289,7 +291,7 @@ class ResearcherProfile(BaseModel):
     insights: ResearcherProfileInsights | None = None
 
     # Metadata
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=utc_now)
     model_used: str | None = None
     library_hash: str | None = None  # Hash of library state for cache invalidation
 

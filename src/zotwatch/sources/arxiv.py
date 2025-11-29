@@ -7,6 +7,8 @@ import feedparser
 import requests
 
 from zotwatch.config.settings import Settings
+from zotwatch.core.constants import DEFAULT_HTTP_TIMEOUT
+from zotwatch.core.exceptions import SourceFetchError
 from zotwatch.core.models import CandidateWork
 from zotwatch.utils.datetime import utc_yesterday_end
 
@@ -71,8 +73,26 @@ class ArxivSource(BaseSource):
             max_results,
         )
 
-        resp = self.session.get(url, params=params, timeout=30)
-        resp.raise_for_status()
+        try:
+            resp = self.session.get(url, params=params, timeout=DEFAULT_HTTP_TIMEOUT)
+            resp.raise_for_status()
+        except requests.exceptions.Timeout:
+            raise SourceFetchError(
+                "arxiv",
+                f"Request timed out after {DEFAULT_HTTP_TIMEOUT}s for categories {', '.join(categories)}"
+            ) from None
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response is not None else "unknown"
+            raise SourceFetchError(
+                "arxiv",
+                f"HTTP {status} error fetching entries for {', '.join(categories)}"
+            ) from e
+        except requests.exceptions.RequestException as e:
+            raise SourceFetchError(
+                "arxiv",
+                f"Network error: {type(e).__name__}"
+            ) from e
+
         feed = feedparser.parse(resp.text)
 
         results: list[CandidateWork] = []

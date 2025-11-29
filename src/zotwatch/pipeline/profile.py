@@ -3,8 +3,8 @@
 import logging
 from pathlib import Path
 
-
 from zotwatch.config.settings import Settings
+from zotwatch.core.exceptions import ProfileBuildError
 from zotwatch.core.models import ProfileArtifacts
 from zotwatch.infrastructure.embedding import (
     CachingEmbeddingProvider,
@@ -78,7 +78,7 @@ class ProfileBuilder:
         """
         all_items = list(self.storage.iter_items())
         if not all_items:
-            raise RuntimeError("No items found in storage; run ingest before building profile.")
+            raise ProfileBuildError("No items found in storage; run ingest before building profile.")
 
         # Filter items: only include those with abstracts
         items_with_abstract = [item for item in all_items if item.abstract]
@@ -91,7 +91,7 @@ class ProfileBuilder:
         )
 
         if not items_with_abstract:
-            raise RuntimeError(
+            raise ProfileBuildError(
                 "No items with abstracts found in storage; profile building requires items with abstracts."
             )
 

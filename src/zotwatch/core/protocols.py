@@ -8,7 +8,7 @@ removed in favor of their ABC counterparts:
 """
 
 from dataclasses import dataclass
-from typing import Iterable, Protocol, runtime_checkable
+from typing import Iterable, Protocol, Self, runtime_checkable
 
 from .models import PaperSummary, ZoteroItem
 
@@ -24,8 +24,36 @@ class LLMResponse:
 
 
 @runtime_checkable
-class ItemStorage(Protocol):
-    """Protocol for item storage backends."""
+class Closeable(Protocol):
+    """Protocol for resources that can be closed.
+
+    Supports context manager usage for automatic resource cleanup.
+    """
+
+    def close(self) -> None:
+        """Close and release resources."""
+        ...
+
+    def __enter__(self) -> Self:
+        """Enter context manager."""
+        ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
+        """Exit context manager and close resources."""
+        ...
+
+
+@runtime_checkable
+class ItemStorage(Closeable, Protocol):
+    """Protocol for item storage backends.
+
+    Extends Closeable to support context manager usage.
+    """
 
     def initialize(self) -> None:
         """Initialize storage schema."""
@@ -71,6 +99,7 @@ class SummaryStorage(Protocol):
 
 __all__ = [
     "LLMResponse",
+    "Closeable",
     "ItemStorage",
     "SummaryStorage",
 ]

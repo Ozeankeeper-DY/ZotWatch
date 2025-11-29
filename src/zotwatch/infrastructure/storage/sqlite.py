@@ -4,8 +4,11 @@ import json
 import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Self
 
+from zotwatch.core.exceptions import ValidationError
 from zotwatch.core.models import PaperSummary, ResearcherProfile, ZoteroItem
+from zotwatch.utils.datetime import utc_now
 
 
 SCHEMA = """
@@ -93,6 +96,19 @@ class ProfileStorage:
         if self._conn is not None:
             self._conn.close()
             self._conn = None
+
+    def __enter__(self) -> Self:
+        """Enter context manager."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
+        """Exit context manager and close resources."""
+        self.close()
 
     # Metadata helpers
 
@@ -270,7 +286,7 @@ class ProfileStorage:
             profile: ResearcherProfile to cache.
         """
         if not profile.library_hash:
-            raise ValueError("Profile must have library_hash set for caching")
+            raise ValidationError("Profile must have library_hash set for caching")
 
         self.connect().execute(
             """
@@ -411,7 +427,7 @@ def _row_to_summary(row: sqlite3.Row) -> PaperSummary:
         detailed=DetailedAnalysis.model_validate_json(row["detailed_json"]),
         model_used=row["model_used"],
         tokens_used=row["tokens_used"],
-        generated_at=datetime.fromisoformat(row["generated_at"]) if row["generated_at"] else datetime.utcnow(),
+        generated_at=datetime.fromisoformat(row["generated_at"]) if row["generated_at"] else utc_now(),
     )
 
 

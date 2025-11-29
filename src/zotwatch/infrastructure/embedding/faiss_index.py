@@ -6,15 +6,17 @@ from pathlib import Path
 import faiss
 import numpy as np
 
+from zotwatch.core.exceptions import ConfigurationError, ValidationError
+
 logger = logging.getLogger(__name__)
 
 
 class FaissIndex:
     """FAISS vector index for similarity search."""
 
-    def __init__(self, dim: int, index: faiss.Index | None = None):
+    def __init__(self, dim: int, index: faiss.Index | None = None) -> None:
         if faiss is None:
-            raise RuntimeError("faiss is required; install faiss-cpu or adjust configuration.")
+            raise ConfigurationError("faiss is required; install faiss-cpu or adjust configuration.")
         self.dim = dim
         self.index = index or faiss.IndexFlatIP(dim)
 
@@ -22,7 +24,7 @@ class FaissIndex:
     def from_vectors(cls, vectors: np.ndarray) -> tuple["FaissIndex", np.ndarray]:
         """Create index from vector array."""
         if vectors.ndim != 2:
-            raise ValueError("Vectors must be a 2D array")
+            raise ValidationError(f"Vectors must be a 2D array, got {vectors.ndim}D")
         dim = vectors.shape[1]
         instance = cls(dim)
         instance.index.add(vectors)
@@ -37,10 +39,10 @@ class FaissIndex:
     def load(cls, path: Path | str) -> "FaissIndex":
         """Load index from disk."""
         if faiss is None:
-            raise RuntimeError("faiss is required; install faiss-cpu or adjust configuration.")
+            raise ConfigurationError("faiss is required; install faiss-cpu or adjust configuration.")
         index = faiss.read_index(str(path))
         if index.ntotal == 0:
-            raise ValueError("Loaded FAISS index is empty")
+            raise ValidationError(f"Loaded FAISS index from {path} is empty")
         return cls(index.d, index)
 
     def search(self, vectors: np.ndarray, top_k: int = 10) -> tuple[np.ndarray, np.ndarray]:

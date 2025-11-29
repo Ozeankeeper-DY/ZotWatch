@@ -6,6 +6,8 @@ from collections.abc import Iterable
 import requests
 
 from zotwatch.config.settings import Settings
+from zotwatch.core.constants import ZOTERO_API_PAGE_SIZE
+from zotwatch.core.exceptions import StorageError
 from zotwatch.core.models import RankedWork
 
 logger = logging.getLogger(__name__)
@@ -72,7 +74,7 @@ class ZoteroPusher:
             return self._collection_key
 
         collections_url = f"{self.base_url}/collections"
-        resp = self.session.get(collections_url, params={"limit": 100})
+        resp = self.session.get(collections_url, params={"limit": ZOTERO_API_PAGE_SIZE})
         resp.raise_for_status()
 
         for collection in resp.json():
@@ -88,7 +90,7 @@ class ZoteroPusher:
         created = resp.json()[0]
         self._collection_key = created.get("successful", {}).get("0", {}).get("data", {}).get("key")
         if not self._collection_key:
-            raise RuntimeError("Failed to create or retrieve Zotero collection")
+            raise StorageError(f"Failed to create or retrieve Zotero collection '{COLLECTION_NAME}'")
         return self._collection_key
 
 

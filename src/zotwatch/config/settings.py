@@ -76,28 +76,44 @@ class SourcesConfig(BaseModel):
 class Thresholds(BaseModel):
     """Score thresholds for labeling."""
 
+    class DynamicConfig(BaseModel):
+        """Dynamic percentile-based threshold configuration."""
+
+        must_read_percentile: float = 95.0  # Top 5% are must_read
+        consider_percentile: float = 70.0  # 70th-95th percentile are consider
+        min_must_read: float = 0.60  # Minimum score for must_read
+        min_consider: float = 0.40  # Minimum score for consider
+
+    mode: str = "fixed"  # "fixed" or "dynamic"
     must_read: float = 0.65
     consider: float = 0.45
+    dynamic: DynamicConfig = Field(default_factory=DynamicConfig)
 
-
-class InterestsConfig(BaseModel):
-    """User research interests configuration."""
-
-    enabled: bool = False
-    description: str = ""  # Natural language interest description
-    top_k_recall: int = 50  # FAISS recall count, -1 to skip FAISS and use all candidates
-    top_k_interest: int = 5  # Final interest-based papers count
-
-
-class RerankConfig(BaseModel):
-    """Voyage Rerank configuration."""
-
-    enabled: bool = True
-    model: str = "rerank-2"
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, value: str) -> str:
+        allowed = {"fixed", "dynamic"}
+        if value not in allowed:
+            raise ValueError(f"Unsupported threshold mode '{value}'. Allowed: {sorted(allowed)}")
+        return value
 
 
 class ScoringConfig(BaseModel):
     """Scoring and ranking configuration."""
+
+    class InterestsConfig(BaseModel):
+        """User research interests configuration."""
+
+        enabled: bool = False
+        description: str = ""  # Natural language interest description
+        top_k_recall: int = 50  # FAISS recall count, -1 to skip FAISS and use all candidates
+        top_k_interest: int = 5  # Final interest-based papers count
+
+    class RerankConfig(BaseModel):
+        """Voyage Rerank configuration."""
+
+        enabled: bool = True
+        model: str = "rerank-2"
 
     thresholds: Thresholds = Field(default_factory=Thresholds)
     interests: InterestsConfig = Field(default_factory=InterestsConfig)
@@ -117,29 +133,26 @@ class EmbeddingConfig(BaseModel):
 
 
 # LLM Configuration
-class LLMRetryConfig(BaseModel):
-    """LLM retry configuration."""
-
-    max_attempts: int = 3
-    backoff_factor: float = 2.0
-    initial_delay: float = 1.0
-
-
-class LLMSummarizeConfig(BaseModel):
-    """LLM summarization settings."""
-
-    top_n: int = 20
-    cache_expiry_days: int = 30
-
-
-class TranslationConfig(BaseModel):
-    """Title translation configuration."""
-
-    enabled: bool = False
-
-
 class LLMConfig(BaseModel):
     """LLM provider configuration."""
+
+    class RetryConfig(BaseModel):
+        """LLM retry configuration."""
+
+        max_attempts: int = 3
+        backoff_factor: float = 2.0
+        initial_delay: float = 1.0
+
+    class SummarizeConfig(BaseModel):
+        """LLM summarization settings."""
+
+        top_n: int = 20
+        cache_expiry_days: int = 30
+
+    class TranslationConfig(BaseModel):
+        """Title translation configuration."""
+
+        enabled: bool = False
 
     enabled: bool = True
     provider: str = "openrouter"
@@ -147,29 +160,27 @@ class LLMConfig(BaseModel):
     model: str = "deepseek/deepseek-chat-v3-0324"
     max_tokens: int = 1024
     temperature: float = 0.3
-    retry: LLMRetryConfig = Field(default_factory=LLMRetryConfig)
-    summarize: LLMSummarizeConfig = Field(default_factory=LLMSummarizeConfig)
+    retry: RetryConfig = Field(default_factory=RetryConfig)
+    summarize: SummarizeConfig = Field(default_factory=SummarizeConfig)
     translation: TranslationConfig = Field(default_factory=TranslationConfig)
 
 
 # Output Configuration
-class RSSConfig(BaseModel):
-    """RSS output configuration."""
-
-    title: str = "ZotWatch Feed"
-    link: str = "https://example.com"
-    description: str = "AI-assisted literature watch"
-
-
-class HTMLConfig(BaseModel):
-    """HTML output configuration."""
-
-    template: str = "report.html"
-    include_summaries: bool = True
-
-
 class OutputConfig(BaseModel):
     """Output generation configuration."""
+
+    class RSSConfig(BaseModel):
+        """RSS output configuration."""
+
+        title: str = "ZotWatch Feed"
+        link: str = "https://example.com"
+        description: str = "AI-assisted literature watch"
+
+    class HTMLConfig(BaseModel):
+        """HTML output configuration."""
+
+        template: str = "report.html"
+        include_summaries: bool = True
 
     timezone: str = "UTC"  # IANA timezone name, e.g., "Asia/Shanghai"
     rss: RSSConfig = Field(default_factory=RSSConfig)
@@ -184,6 +195,19 @@ class ProfileConfig(BaseModel):
     author_min_count: int = 10  # Minimum appearances for "frequent author"
 
 
+# Watch Pipeline Configuration
+class WatchPipelineConfig(BaseModel):
+    """Watch pipeline configuration.
+
+    Externalizes magic numbers previously hardcoded in cli/main.py.
+    """
+
+    recent_days: int = 7  # Filter papers older than this many days
+    max_preprint_ratio: float = 0.9  # Maximum ratio of preprints in results
+    top_k: int = 20  # Default number of recommendations
+    require_abstract: bool = True  # Filter out candidates without abstracts
+
+
 # Main Settings
 class Settings(BaseModel):
     """Main configuration settings."""
@@ -195,6 +219,7 @@ class Settings(BaseModel):
     llm: LLMConfig = Field(default_factory=LLMConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
     profile: ProfileConfig = Field(default_factory=ProfileConfig)
+    watch: WatchPipelineConfig = Field(default_factory=WatchPipelineConfig)
 
 
 def load_settings(base_dir: Path | str) -> Settings:
@@ -211,6 +236,7 @@ def load_settings(base_dir: Path | str) -> Settings:
         llm=LLMConfig(**config.get("llm", {})),
         output=OutputConfig(**config.get("output", {})),
         profile=ProfileConfig(**config.get("profile", {})),
+        watch=WatchPipelineConfig(**config.get("watch", {})),
     )
 
 
@@ -220,13 +246,14 @@ __all__ = [
     "ZoteroConfig",
     "ZoteroApiConfig",
     "SourcesConfig",
+    "CrossRefConfig",
+    "ArxivConfig",
     "ScraperConfig",
     "ScoringConfig",
-    "InterestsConfig",
-    "RerankConfig",
+    "Thresholds",
     "EmbeddingConfig",
     "LLMConfig",
-    "TranslationConfig",
     "OutputConfig",
     "ProfileConfig",
+    "WatchPipelineConfig",
 ]
