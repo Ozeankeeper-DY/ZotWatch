@@ -325,6 +325,11 @@ def print_summary(results: list[TestResult]) -> int:
     failed = sum(1 for r in results if r.status == Status.FAILED)
     skipped = sum(1 for r in results if r.status == Status.SKIPPED)
 
+    # Check if at least one LLM API is available
+    llm_apis = ["OpenRouter", "Kimi"]
+    llm_results = [r for r in results if r.name in llm_apis]
+    llm_available = any(r.status == Status.SUCCESS for r in llm_results)
+
     print()
     print("=" * 64)
     print(f"  Result: {passed} passed, {failed} failed, {skipped} skipped")
@@ -338,6 +343,13 @@ def print_summary(results: list[TestResult]) -> int:
         for r in failed_tests:
             print(f"  \u274c {r.name}: {r.message}")
         print()
+
+    # Check LLM API requirement
+    if not llm_available:
+        print("\u274c At least one LLM API (OpenRouter or Kimi) must be configured")
+        print("   AI summarization requires a working LLM API connection.")
+        print()
+        return 1
 
     return 1 if failed > 0 else 0
 
