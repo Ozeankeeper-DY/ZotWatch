@@ -25,9 +25,9 @@ jobs:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       CROSSREF_MAILTO: ${{ secrets.CROSSREF_MAILTO }}
       # Deploy settings - CHANGE THESE TO YOUR VALUES
-      GIT_USER_NAME: 'Yan Tang'
-      GIT_USER_EMAIL: '360383464@qq.com'
-      TARGET_REPOSITORY: 'kenanking/kenanking.github.io'
+      GIT_USER_NAME: 'Duan Yu'
+      GIT_USER_EMAIL: 'duanyu31986@gmail.com'
+      TARGET_REPOSITORY: 'Ozeankeeper-DY/Ozeankeeper-DY.github.io'
       DEPLOY_SUBDIR: 'zotwatch'
       TIMEZONE: 'Asia/Shanghai'
 
