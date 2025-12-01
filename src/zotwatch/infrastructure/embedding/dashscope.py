@@ -52,9 +52,7 @@ class DashScopeEmbedding(BaseEmbeddingProvider):
     def _ensure_api_key(self) -> str:
         """Ensure API key is configured."""
         if not self._api_key:
-            raise ConfigurationError(
-                "DashScope API key is required. Set DASHSCOPE_API_KEY environment variable."
-            )
+            raise ConfigurationError("DashScope API key is required. Set DASHSCOPE_API_KEY environment variable.")
         return self._api_key
 
     def encode(self, texts: Iterable[str]) -> np.ndarray:
@@ -86,9 +84,7 @@ class DashScopeEmbedding(BaseEmbeddingProvider):
             )
 
             if resp.status_code != HTTPStatus.OK:
-                raise RuntimeError(
-                    f"DashScope embedding failed: {resp.code} - {resp.message}"
-                )
+                raise RuntimeError(f"DashScope embedding failed: {resp.code} - {resp.message}")
 
             # Extract embeddings from response
             for item in resp.output["embeddings"]:
@@ -127,9 +123,7 @@ class DashScopeReranker(BaseReranker):
     def _ensure_api_key(self) -> str:
         """Ensure API key is configured."""
         if not self._api_key:
-            raise ConfigurationError(
-                "DashScope API key is required. Set DASHSCOPE_API_KEY environment variable."
-            )
+            raise ConfigurationError("DashScope API key is required. Set DASHSCOPE_API_KEY environment variable.")
         return self._api_key
 
     def rerank(
@@ -173,9 +167,7 @@ class DashScopeReranker(BaseReranker):
             )
 
             if resp.status_code != HTTPStatus.OK:
-                raise RuntimeError(
-                    f"DashScope rerank failed: {resp.code} - {resp.message}"
-                )
+                raise RuntimeError(f"DashScope rerank failed: {resp.code} - {resp.message}")
 
             results = resp.output["results"]
             rerank_results = [(r["index"], r["relevance_score"]) for r in results]
@@ -224,9 +216,7 @@ class DashScopeReranker(BaseReranker):
         )
 
         if resp.status_code != HTTPStatus.OK:
-            raise RuntimeError(
-                f"DashScope rerank failed: {resp.code} - {resp.message}"
-            )
+            raise RuntimeError(f"DashScope rerank failed: {resp.code} - {resp.message}")
 
         results = resp.output["results"]
         return [
@@ -240,4 +230,3 @@ class DashScopeReranker(BaseReranker):
 
 
 __all__ = ["DashScopeEmbedding", "DashScopeReranker"]
-

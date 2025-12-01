@@ -240,8 +240,8 @@ class Settings(BaseModel):
     profile: ProfileConfig = Field(default_factory=ProfileConfig)
     watch: WatchPipelineConfig = Field(default_factory=WatchPipelineConfig)
 
-    @model_validator(mode='after')
-    def validate_embedding_rerank_coupling(self) -> 'Settings':
+    @model_validator(mode="after")
+    def validate_embedding_rerank_coupling(self) -> "Settings":
         """Ensure embedding and rerank use the same provider when interests are enabled.
 
         This constraint is only enforced when interests.enabled=true because:
@@ -258,10 +258,10 @@ class Settings(BaseModel):
                     f"Update config.yaml to use the same provider for both.\n\n"
                     f"Example:\n"
                     f"  embedding:\n"
-                    f"    provider: \"{self.embedding.provider}\"\n"
+                    f'    provider: "{self.embedding.provider}"\n'
                     f"  scoring:\n"
                     f"    rerank:\n"
-                    f"      provider: \"{self.embedding.provider}\"\n\n"
+                    f'      provider: "{self.embedding.provider}"\n\n'
                     f"Alternatively, set scoring.interests.enabled=false if you don't need "
                     f"interest-based recommendations."
                 )
