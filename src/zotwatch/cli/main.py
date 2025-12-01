@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from zotwatch import __version__
 from zotwatch.config import Settings, load_settings
-from zotwatch.infrastructure.embedding import EmbeddingCache, VoyageEmbedding
+from zotwatch.infrastructure.embedding import EmbeddingCache, create_embedding_provider
 from zotwatch.infrastructure.storage import ProfileStorage
 from zotwatch.output import render_html, write_rss
 from zotwatch.output.push import ZoteroPusher
@@ -111,12 +111,7 @@ def _build_profile(
     click.echo(f"Building profile from {total_items} items...")
 
     # Build profile with unified cache
-    vectorizer = VoyageEmbedding(
-        model_name=settings.embedding.model,
-        api_key=settings.embedding.api_key,
-        input_type=settings.embedding.input_type,
-        batch_size=settings.embedding.batch_size,
-    )
+    vectorizer = create_embedding_provider(settings.embedding)
     builder = ProfileBuilder(
         base_dir,
         storage,
@@ -168,12 +163,7 @@ def profile(ctx: click.Context, full: bool) -> None:
         click.echo(f"Building profile (all {total_items} embeddings cached)...")
 
     # Build profile with unified cache
-    vectorizer = VoyageEmbedding(
-        model_name=settings.embedding.model,
-        api_key=settings.embedding.api_key,
-        input_type=settings.embedding.input_type,
-        batch_size=settings.embedding.batch_size,
-    )
+    vectorizer = create_embedding_provider(settings.embedding)
     builder = ProfileBuilder(
         base_dir,
         storage,

@@ -12,7 +12,7 @@ from zotwatch.infrastructure.embedding import (
     CachingEmbeddingProvider,
     EmbeddingCache,
     FaissIndex,
-    VoyageEmbedding,
+    create_embedding_provider,
 )
 from zotwatch.infrastructure.embedding.base import BaseEmbeddingProvider
 from zotwatch.pipeline.journal_scorer import JournalScorer
@@ -60,12 +60,7 @@ class ProfileRanker:
         self._cache = embedding_cache
 
         # Create base vectorizer
-        base_vectorizer = vectorizer or VoyageEmbedding(
-            model_name=settings.embedding.model,
-            api_key=settings.embedding.api_key,
-            input_type=settings.embedding.input_type,
-            batch_size=settings.embedding.batch_size,
-        )
+        base_vectorizer = vectorizer or create_embedding_provider(settings.embedding)
 
         # Wrap with cache if provided
         if embedding_cache is not None:

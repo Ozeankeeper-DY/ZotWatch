@@ -20,6 +20,7 @@ dependencies = [
     "camoufox[geoip]>=0.4.11",
     "camoufox-captcha>=0.1.0",
     "tzdata>=2025.2",
+    "dashscope>=1.25",
 ]
 
 [project.scripts]

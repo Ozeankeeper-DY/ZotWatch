@@ -23,38 +23,28 @@ sources:
     mailto: "${CROSSREF_MAILTO}"
     days_back: 2
     max_results: 3000
-  # Abstract scraper for enriching missing abstracts (Camoufox + rule-based + LLM fallback)
+  # Abstract scraper (Camoufox + rule-based + LLM fallback)
   scraper:
     enabled: true
-    rate_limit_delay: 1.0  # Seconds between requests
-    timeout: 60000  # Page load timeout (ms)
-    max_retries: 2  # Retry attempts per URL
-    max_html_chars: 15000  # Max HTML chars to send to LLM
-    llm_max_tokens: 1024  # Max tokens for LLM extraction response
-    llm_temperature: 0.1  # Low temperature for accurate extraction
-    use_llm_fallback: true  # Use LLM when rule extraction fails
+    rate_limit_delay: 1.0
+    timeout: 60000
+    max_retries: 2
+    max_html_chars: 15000
+    llm_max_tokens: 1024
+    llm_temperature: 0.1
+    use_llm_fallback: true
 
 scoring:
-  # Threshold Configuration
-  # Controls how papers are labeled: "must_read", "consider", or "ignore"
+  # Threshold configuration: controls how papers are labeled (must_read/consider/ignore)
   thresholds:
-    # Mode: "fixed" uses static thresholds below; "dynamic" computes from score distribution
-    # Dynamic mode helps when absolute scores vary across runs, ensuring consistent relative ranking
-    mode: "dynamic"
-
-    # Fixed thresholds (used when mode: "fixed")
-    # Papers with score >= must_read are labeled "must_read"
-    # Papers with score >= consider (but < must_read) are labeled "consider"
-    must_read: 0.75
-    consider: 0.55
-
-    # Dynamic thresholds (used when mode: "dynamic")
-    # Computes thresholds based on percentiles of the current batch's score distribution
-    dynamic:
-      must_read_percentile: 95  # Top 5% are must_read (95th percentile = top 5%)
-      consider_percentile: 70   # 70th-95th percentile are consider
-      min_must_read: 0.60       # Floor: never label as must_read if score < this
-      min_consider: 0.40        # Floor: never label as consider if score < this
+    mode: "dynamic"  # "fixed" (static thresholds) or "dynamic" (percentile-based)
+    must_read: 0.75  # Fixed mode: must_read threshold
+    consider: 0.55   # Fixed mode: consider threshold
+    dynamic:         # Dynamic mode: percentile-based thresholds
+      must_read_percentile: 95  # Top 5% as must_read
+      consider_percentile: 70   # 70th-95th percentile as consider
+      min_must_read: 0.60       # Minimum score floor for must_read
+      min_consider: 0.40        # Minimum score floor for consider
 
   # User research interests for interest-based recommendations (optional)
   interests:
@@ -69,24 +59,24 @@ scoring:
     top_k_recall: -1  # FAISS recall count, -1 to skip FAISS and use all candidates
     top_k_interest: 5  # Final interest-based papers count
 
-  # Voyage Rerank settings (uses VOYAGE_API_KEY)
+  # Rerank settings (only used when interests.enabled=true)
+  # Provider MUST match embedding.provider when interests are enabled
   rerank:
-    enabled: true
-    model: "rerank-2.5"
+    provider: "dashscope"  # Options: "voyage" or "dashscope"
+    model: "qwen3-rerank"  # voyage: rerank-2/rerank-2.5, dashscope: qwen3-rerank
 
+# Embedding configuration (provider MUST match rerank.provider when interests are enabled)
 embedding:
-  provider: "voyage"
-  model: "voyage-3.5"
-  api_key: "${VOYAGE_API_KEY}"
-  input_type: "document"
-  batch_size: 128
+  provider: "dashscope"  # Options: "voyage" or "dashscope"
+  model: "text-embedding-v4"  # voyage: voyage-3.5, dashscope: text-embedding-v4
+  api_key: "${DASHSCOPE_API_KEY}"  # Use DASHSCOPE_API_KEY for dashscope
+  batch_size: 10
 
-# LLM Configuration for AI summaries
-# Supported providers: "openrouter", "kimi"
+# LLM configuration for AI summaries and translation
 llm:
   enabled: true
-  provider: "kimi"
-  api_key: "${MOONSHOT_API_KEY}"
+  provider: "kimi"  # Options: "kimi" or "openrouter"
+  api_key: "${MOONSHOT_API_KEY}"  # Use OPENROUTER_API_KEY for openrouter
   model: "kimi-k2-turbo-preview"
   max_tokens: 5120
   temperature: 0.3
@@ -97,18 +87,8 @@ llm:
   summarize:
     top_n: 20
     cache_expiry_days: 30
-  # Title translation (translate English titles to Chinese in HTML report)
   translation:
-    enabled: true
-
-# Example Kimi configuration (uncomment to use):
-# llm:
-#   enabled: true
-#   provider: "kimi"
-#   api_key: "${MOONSHOT_API_KEY}"
-#   model: "kimi-k2-thinking-turbo"  # or "kimi-k2-turbo-preview"
-#   max_tokens: 16000  # Thinking models need >=16000
-#   temperature: 1.0   # Thinking models recommend 1.0, normal models 0.6
+    enabled: true  # Translate English titles to Chinese
 
 # Output Configuration
 output:
@@ -121,23 +101,20 @@ output:
     template: "report.html"
     include_summaries: true
 
-# Profile Analysis Configuration
+# Profile analysis configuration
 profile:
-  # Keywords/tags to exclude from statistics (e.g., personal markers)
-  exclude_keywords:
+  exclude_keywords:  # Exclude personal markers from statistics
     - "⏳"
     - "✔️"
     - "💎"
     - "/done"
     - "/reading"
     - "/unread"
-  # Minimum author appearance threshold for "frequent author" count
-  author_min_count: 10
+  author_min_count: 10  # Minimum appearances for "frequent author"
 
-# Watch Pipeline Configuration
-# Controls behavior of `zotwatch watch` command
+# Watch pipeline configuration
 watch:
-  recent_days: 7          # Filter papers older than this many days
-  max_preprint_ratio: 0.9 # Maximum ratio of preprints (arXiv/bioRxiv/medRxiv) in results
-  top_k: 20               # Default number of recommendations (can be overridden with --top)
-  require_abstract: true  # Filter out candidates without abstracts (required for similarity scoring)
+  recent_days: 7          # Filter papers older than N days
+  max_preprint_ratio: 0.9 # Max preprint ratio in results
+  top_k: 20               # Default recommendation count
+  require_abstract: true  # Filter out papers without abstracts

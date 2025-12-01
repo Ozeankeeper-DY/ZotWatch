@@ -7,7 +7,8 @@ import numpy as np
 
 from zotwatch.config.settings import Settings
 from zotwatch.core.models import CandidateWork, InterestWork
-from zotwatch.infrastructure.embedding import FaissIndex, VoyageReranker
+from zotwatch.infrastructure.embedding import FaissIndex
+from zotwatch.infrastructure.embedding.base import BaseReranker
 from zotwatch.infrastructure.embedding.base import BaseEmbeddingProvider
 from zotwatch.llm import InterestRefiner
 from zotwatch.pipeline.journal_scorer import JournalScorer
@@ -22,7 +23,7 @@ class InterestRanker:
         self,
         settings: Settings,
         vectorizer: BaseEmbeddingProvider,
-        reranker: VoyageReranker,
+        reranker: BaseReranker,
         interest_refiner: InterestRefiner,
         base_dir: Path | str | None = None,
     ):
@@ -30,8 +31,8 @@ class InterestRanker:
 
         Args:
             settings: Application settings
-            vectorizer: Embedding provider for encoding
-            reranker: Voyage reranker for semantic re-ranking
+            vectorizer: Embedding provider for encoding (typically CachingEmbeddingProvider)
+            reranker: Reranker for semantic re-ranking (Voyage or DashScope)
             interest_refiner: LLM-based interest refiner
             base_dir: Base directory for data files (for loading journal whitelist)
         """

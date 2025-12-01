@@ -10,7 +10,7 @@ from zotwatch.infrastructure.embedding import (
     CachingEmbeddingProvider,
     EmbeddingCache,
     FaissIndex,
-    VoyageEmbedding,
+    create_embedding_provider,
 )
 from zotwatch.infrastructure.embedding.base import BaseEmbeddingProvider
 from zotwatch.infrastructure.storage import ProfileStorage
@@ -44,12 +44,7 @@ class ProfileBuilder:
         self.settings = settings
 
         # Create base vectorizer
-        base_vectorizer = vectorizer or VoyageEmbedding(
-            model_name=settings.embedding.model,
-            api_key=settings.embedding.api_key,
-            input_type=settings.embedding.input_type,
-            batch_size=settings.embedding.batch_size,
-        )
+        base_vectorizer = vectorizer or create_embedding_provider(settings.embedding)
 
         # Wrap with caching if cache is provided
         if embedding_cache is not None:
@@ -120,6 +115,10 @@ class ProfileBuilder:
         logger.info("Building FAISS index")
         index, _ = FaissIndex.from_vectors(vectors)
         index.save(self.artifacts.faiss_path)
+
+        # Persist embedding signature to detect provider/model changes across runs
+        signature = f"{self.settings.embedding.provider}:{self.settings.embedding.model}"
+        self.storage.set_metadata("embedding_signature", signature)
 
         return self.artifacts
 

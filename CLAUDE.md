@@ -82,6 +82,8 @@ src/zotwatch/
   - `output`: RSS and HTML output settings
   - `watch`: Watch pipeline settings (recent_days, preprint ratio, top_k)
 
+For detailed configuration guides (embedding provider switching, LLM provider switching, threshold modes, etc.), see the "配置指南" section in README.md.
+
 ### Configuration Options
 
 #### Dynamic Thresholds (`scoring.thresholds`)
@@ -108,6 +110,65 @@ Controls the watch command behavior:
 - `top_k`: Default number of recommendations (default: 20)
 - `require_abstract`: Filter out candidates without abstracts (default: true)
 
+### Switching Embedding Providers
+
+ZotWatch supports two embedding providers:
+- **Voyage AI**: High-quality embeddings, recommended for English papers
+- **DashScope** (Alibaba Cloud): Alternative provider with Chinese language support
+
+**Important:** When `scoring.interests.enabled=true`, both `embedding.provider` and `scoring.rerank.provider` MUST use the same provider.
+
+#### Voyage AI (Default)
+
+```yaml
+# config/config.yaml
+embedding:
+  provider: "voyage"
+  model: "voyage-3.5"
+  api_key: "${VOYAGE_API_KEY}"
+  batch_size: 128
+
+scoring:
+  rerank:
+    provider: "voyage"  # Must match embedding.provider
+    model: "rerank-2.5"
+```
+
+Environment variables:
+```bash
+# .env
+VOYAGE_API_KEY=your_voyage_api_key_here
+```
+
+#### DashScope (Alibaba Cloud)
+
+```yaml
+# config/config.yaml
+embedding:
+  provider: "dashscope"
+  model: "text-embedding-v4"
+  api_key: "${DASHSCOPE_API_KEY}"
+  batch_size: 25  # DashScope uses smaller batches
+
+scoring:
+  rerank:
+    provider: "dashscope"  # Must match embedding.provider
+    model: "qwen3-rerank"
+```
+
+Environment variables:
+```bash
+# .env
+DASHSCOPE_API_KEY=your_dashscope_api_key_here
+```
+
+**After switching providers**, rebuild your profile:
+```bash
+uv run zotwatch profile --full
+```
+
+This is necessary because embeddings from different providers are not compatible.
+
 ### Core Components
 
 - `VoyageEmbedder` (`infrastructure/embedding/voyage.py`): Wraps Voyage AI API (voyage-3.5, 1024-dim embeddings)
@@ -122,10 +183,10 @@ Controls the watch command behavior:
 Required:
 - `ZOTERO_API_KEY`: Zotero Web API key
 - `ZOTERO_USER_ID`: Zotero user ID
-- `VOYAGE_API_KEY`: Voyage AI API key for text embeddings
+- `VOYAGE_API_KEY` or `DASHSCOPE_API_KEY`: Embedding provider API key (depending on `embedding.provider` in config.yaml)
+- `MOONSHOT_API_KEY` or `OPENROUTER_API_KEY`: LLM provider API key (at least one required, depending on `llm.provider` in config.yaml)
 
 Optional:
-- `OPENROUTER_API_KEY`: OpenRouter API key for AI summaries
 - `CROSSREF_MAILTO`: Crossref polite pool email
 
 ## Key Constraints
@@ -133,6 +194,57 @@ Optional:
 - Preprint ratio is configurable via `watch.max_preprint_ratio` (default: 0.9)
 - Recent paper filter is configurable via `watch.recent_days` (default: 7 days)
 - GitHub Actions caches profile artifacts monthly to avoid full rebuilds
-- AI summaries require `OPENROUTER_API_KEY` and `llm.enabled: true` in config
+- AI summaries require LLM API key (`MOONSHOT_API_KEY` or `OPENROUTER_API_KEY`) and `llm.enabled: true` in config
+- Embedding and rerank providers must use the same provider when interests.enabled=true (both Voyage or both DashScope)
 - When writing code, please use English for all comments
 - Use Python 3.10+ type annotation syntax: `list[X]`, `dict[K, V]`, `X | None` instead of `List`, `Dict`, `Optional` from typing module
+## Troubleshooting
+
+### Provider Mismatch Error
+
+**Error:**
+```
+Configuration error: When interests.enabled=true, rerank provider 'dashscope' must match embedding provider 'voyage'
+```
+
+**Cause:** This error occurs when `scoring.interests.enabled=true` but the providers don't match.
+
+**Solution 1:** If you need interest-based recommendations, update `config.yaml` so both providers match:
+```yaml
+embedding:
+  provider: "voyage"  # or "dashscope"
+
+scoring:
+  rerank:
+    provider: "voyage"  # Must be same as embedding.provider
+```
+
+**Solution 2:** If you don't need interest-based recommendations, disable interests:
+```yaml
+scoring:
+  interests:
+    enabled: false
+```
+
+### Missing API Key
+
+**Error:**
+```
+DashScope API key is required. Set DASHSCOPE_API_KEY environment variable.
+```
+
+**Solution:** Add the API key to your `.env` file:
+```bash
+DASHSCOPE_API_KEY=your_key_here
+```
+
+### Incompatible Embeddings After Provider Switch
+
+**Symptom:** Errors when running `zotwatch watch` after changing providers
+
+**Solution:** Rebuild your profile with the new provider:
+```bash
+uv run zotwatch profile --full
+```
+
+This regenerates all embeddings using the new provider.

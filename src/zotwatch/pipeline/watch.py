@@ -11,7 +11,12 @@ from pathlib import Path
 
 from zotwatch.config.settings import Settings
 from zotwatch.core.models import CandidateWork, InterestWork, OverallSummary, RankedWork, ResearcherProfile
-from zotwatch.infrastructure.embedding import EmbeddingCache, VoyageEmbedding, VoyageReranker
+from zotwatch.infrastructure.embedding import (
+    CachingEmbeddingProvider,
+    EmbeddingCache,
+    create_embedding_provider,
+    create_reranker,
+)
 from zotwatch.infrastructure.enrichment.cache import MetadataCache
 from zotwatch.infrastructure.storage import ProfileStorage
 from zotwatch.llm import (
@@ -140,14 +145,30 @@ class WatchPipeline:
         on_progress: Callable[[str, str], None] | None = None,
     ) -> bool:
         """Check if profile exists, return True if it was built."""
+        storage = self._get_storage()
+        current_signature = f"{self.settings.embedding.provider}:{self.settings.embedding.model}"
+        stored_signature = storage.get_metadata("embedding_signature")
         faiss_path = self.base_dir / "data" / "faiss.index"
         sqlite_path = self.base_dir / "data" / "profile.sqlite"
 
-        if faiss_path.exists() and sqlite_path.exists():
+        # Rebuild when artifacts are missing or embedding provider/model changed
+        has_artifacts = faiss_path.exists() and sqlite_path.exists()
+        signature_mismatch = stored_signature != current_signature
+
+        if has_artifacts and not signature_mismatch:
             return False
 
+        if signature_mismatch:
+            logger.info(
+                "Embedding provider/model changed (was '%s', now '%s'); rebuilding profile embeddings and FAISS index",
+                stored_signature or "<unknown>",
+                current_signature,
+            )
+        else:
+            logger.info("Profile artifacts missing; rebuilding profile embeddings and FAISS index")
+
         # Build profile
-        logger.info("No profile found, building from Zotero library...")
+        logger.info("Building profile from Zotero library...")
         self._build_profile(full=True, on_progress=on_progress)
         return True
 
@@ -165,12 +186,7 @@ class WatchPipeline:
         """Build embeddings + FAISS index from items already in storage."""
         embedding_cache = self._get_embedding_cache()
 
-        vectorizer = VoyageEmbedding(
-            model_name=self.settings.embedding.model,
-            api_key=self.settings.embedding.api_key,
-            input_type=self.settings.embedding.input_type,
-            batch_size=self.settings.embedding.batch_size,
-        )
+        vectorizer = create_embedding_provider(self.settings.embedding)
 
         builder = ProfileBuilder(
             self.base_dir,
@@ -265,7 +281,7 @@ class WatchPipeline:
         # 8. Interest-based selection (optional)
         interests_config = self.settings.scoring.interests
         if interests_config.enabled and interests_config.description.strip():
-            result.interest_works = self._select_interest_papers(candidates, progress)
+            result.interest_works = self._select_interest_papers(candidates, embedding_cache, progress)
             result.stats.interest_papers_selected = len(result.interest_works)
 
         # 9. Rank by profile similarity
@@ -375,6 +391,7 @@ class WatchPipeline:
     def _select_interest_papers(
         self,
         candidates: list[CandidateWork],
+        embedding_cache: EmbeddingCache,
         progress: Callable[[str, str], None],
     ) -> list[InterestWork]:
         """Select papers based on user interests."""
@@ -386,20 +403,23 @@ class WatchPipeline:
                 return []
 
             refiner = InterestRefiner(llm_client, model=self.settings.llm.model)
-            reranker = VoyageReranker(
-                api_key=self.settings.embedding.api_key,
-                model=self.settings.scoring.rerank.model,
+            reranker = create_reranker(
+                self.settings.scoring.rerank,
+                self.settings.embedding,
             )
-            vectorizer = VoyageEmbedding(
-                model_name=self.settings.embedding.model,
-                api_key=self.settings.embedding.api_key,
-                input_type=self.settings.embedding.input_type,
-                batch_size=self.settings.embedding.batch_size,
+
+            # Create cached embedding provider (reuses same cache as ProfileRanker)
+            base_vectorizer = create_embedding_provider(self.settings.embedding)
+            cached_vectorizer = CachingEmbeddingProvider(
+                provider=base_vectorizer,
+                cache=embedding_cache,
+                source_type="candidate",
+                ttl_days=self.settings.embedding.candidate_ttl_days,
             )
 
             selector = InterestRanker(
                 settings=self.settings,
-                vectorizer=vectorizer,
+                vectorizer=cached_vectorizer,
                 reranker=reranker,
                 interest_refiner=refiner,
                 base_dir=self.base_dir,

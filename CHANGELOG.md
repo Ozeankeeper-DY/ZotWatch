@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING**: Removed `scoring.rerank.enabled` configuration flag. Reranking is now automatically enabled when `scoring.interests.enabled=true` and disabled otherwise. This simplifies configuration by eliminating redundant flags.
+
+**Migration:**
+
+Remove the `enabled` field from your `config.yaml`:
+
+**Before:**
+```yaml
+scoring:
+  rerank:
+    enabled: true  # Remove this line
+    provider: "voyage"
+    model: "rerank-2.5"
+```
+
+**After:**
+```yaml
+scoring:
+  rerank:
+    provider: "voyage"
+    model: "rerank-2.5"
+```
+
+**Impact:**
+- Provider coupling validation now only runs when `interests.enabled=true`
+- Configs with `interests.enabled=false` no longer require matching providers
+- This eliminates confusing validation errors for unused rerank configurations
+
 ## [0.3.0] - 2025-11-29
 
 ### Added
