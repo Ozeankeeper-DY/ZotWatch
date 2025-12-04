@@ -3,13 +3,10 @@
 import logging
 from pathlib import Path
 
-import numpy as np
-
 from zotwatch.config.settings import Settings
 from zotwatch.core.models import CandidateWork, InterestWork
 from zotwatch.infrastructure.embedding import FaissIndex
-from zotwatch.infrastructure.embedding.base import BaseReranker
-from zotwatch.infrastructure.embedding.base import BaseEmbeddingProvider
+from zotwatch.infrastructure.embedding.base import BaseEmbeddingProvider, BaseReranker
 from zotwatch.llm import InterestRefiner
 from zotwatch.pipeline.journal_scorer import JournalScorer
 

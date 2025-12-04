@@ -1,5 +1,6 @@
 """LLM integration."""
 
+from .deepseek import DeepSeekClient
 from .factory import create_llm_client
 from .interest_refiner import InterestRefiner
 from .kimi import KimiClient
@@ -11,6 +12,7 @@ from .translator import TitleTranslator
 
 __all__ = [
     "create_llm_client",
+    "DeepSeekClient",
     "KimiClient",
     "OpenRouterClient",
     "PaperSummarizer",

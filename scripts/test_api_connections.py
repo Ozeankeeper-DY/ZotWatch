@@ -146,6 +146,11 @@ def detect_required_env_vars(settings: Settings | None) -> dict[str, dict]:
             "description": "OpenRouter API key",
             "reason": "LLM provider (status unknown, config not loaded)",
         }
+        env_vars["DEEPSEEK_API_KEY"] = {
+            "required": False,
+            "description": "DeepSeek API key",
+            "reason": "LLM provider (status unknown, config not loaded)",
+        }
     else:
         # Config-aware mode: detect based on settings
 
@@ -177,6 +182,12 @@ def detect_required_env_vars(settings: Settings | None) -> dict[str, dict]:
                     "description": "OpenRouter API key",
                     "reason": f"Configured LLM provider: {settings.llm.model}",
                 }
+            elif settings.llm.provider == "deepseek":
+                env_vars["DEEPSEEK_API_KEY"] = {
+                    "required": True,
+                    "description": "DeepSeek API key",
+                    "reason": f"Configured LLM provider: {settings.llm.model}",
+                }
         else:
             # LLM disabled - add as optional for informational purposes
             env_vars["MOONSHOT_API_KEY"] = {
@@ -187,6 +198,11 @@ def detect_required_env_vars(settings: Settings | None) -> dict[str, dict]:
             env_vars["OPENROUTER_API_KEY"] = {
                 "required": False,
                 "description": "OpenRouter API key",
+                "reason": "LLM disabled in config (llm.enabled=false)",
+            }
+            env_vars["DEEPSEEK_API_KEY"] = {
+                "required": False,
+                "description": "DeepSeek API key",
                 "reason": "LLM disabled in config (llm.enabled=false)",
             }
 
@@ -609,6 +625,38 @@ def test_kimi() -> TestResult:
         return TestResult("Kimi", Status.FAILED, f"Connection error: {e}")
 
 
+def test_deepseek() -> TestResult:
+    """Test DeepSeek API connection."""
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
+
+    if not api_key:
+        return TestResult("DeepSeek", Status.SKIPPED, "DEEPSEEK_API_KEY not set")
+
+    try:
+        # Use the models endpoint to test authentication (no tokens consumed)
+        resp = requests.get(
+            "https://api.deepseek.com/models",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+            },
+            timeout=30,
+        )
+
+        if resp.status_code == 200:
+            data = resp.json()
+            model_count = len(data.get("data", []))
+            return TestResult("DeepSeek", Status.SUCCESS, f"Connected ({model_count} models available)")
+        elif resp.status_code == 401:
+            return TestResult("DeepSeek", Status.FAILED, "Invalid API key")
+        else:
+            return TestResult("DeepSeek", Status.FAILED, f"HTTP {resp.status_code}: {resp.text[:100]}")
+
+    except requests.exceptions.Timeout:
+        return TestResult("DeepSeek", Status.FAILED, "Connection timeout")
+    except requests.exceptions.RequestException as e:
+        return TestResult("DeepSeek", Status.FAILED, f"Connection error: {e}")
+
+
 def run_tests(settings: Settings | None) -> list[TestResult]:
     """Run all API connection tests based on configuration.
 
@@ -686,6 +734,12 @@ def run_tests(settings: Settings | None) -> list[TestResult]:
                 test_count += 1
                 print(f"  [{test_count}] OpenRouter LLM  ", end="", flush=True)
                 result = test_openrouter()
+                results.append(result)
+                print(format_status(result.status, result.message))
+            elif settings.llm.provider == "deepseek":
+                test_count += 1
+                print(f"  [{test_count}] DeepSeek LLM    ", end="", flush=True)
+                result = test_deepseek()
                 results.append(result)
                 print(format_status(result.status, result.message))
 
